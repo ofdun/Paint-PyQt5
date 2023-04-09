@@ -1,25 +1,43 @@
 import sys
 import os
-from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFileDialog, QMessageBox
-from PyQt5.QtGui import QImage, QPainter, QPen
-from PyQt5.QtCore import Qt, QPoint
-
+from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFileDialog, QMessageBox, QSlider, QLabel
+from PyQt5.QtGui import QImage, QPainter, QPen, QColor
+from PyQt5.QtCore import Qt, QPoint, QSize
 
 class App(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, width: int = 800, height: int = 600) -> None:
         super().__init__()
-        # self.setGeometry(0, 0, 800, 800)
         self.adjustSize()
-        self.setFixedSize(800, 600)
+        self.setFixedSize(width, height)
         self.setWindowTitle("Paint!")
         menu_bar = self.menuBar()
 
-        self.image = QImage(self.size(), QImage.Format_RGB32 )
+        self.image = QImage(QSize(width, height), QImage.Format_RGB32 )
         self.image.fill(Qt.white)
         self.drawing = False
         self.brush_size = 2
-        self.brush_color = Qt.black
+        self.brush_color: tuple[int, int, int] = (0, 0, 0)
         self.last_point = QPoint()
+        
+        self.toolbar = self.addToolBar("TOOLBAR")
+        self.toolbar.setFixedHeight(self.percent(height, 7))
+        
+        # brush_picture = QPixmap('pictures/brush.png')
+        brush_label = QLabel(self)
+        self.brush_value_label = QLabel(self)
+        
+        # brush_label.setPixmap(brush_picture)
+        # brush_label.resize(20, 20)
+        brush_label.setText("Brush Size:")
+        self.brush_value_label.setText("2")
+        
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setFixedWidth(self.percent(width, 20))
+        self.slider.setRange(2, 48)
+        self.slider.valueChanged[int].connect(self.changeBrushSize)
+        self.toolbar.addWidget(brush_label)
+        self.toolbar.addWidget(self.slider)
+        self.toolbar.addWidget(self.brush_value_label)
         
         file_menu = menu_bar.addMenu("File")
         save_action = QAction("Save", self)
@@ -32,30 +50,40 @@ class App(QMainWindow):
         file_menu.addAction(clear_action)
         clear_action.triggered.connect(self.clear_picture)
         
-    def mousePressEvent(self, event):
+    def changeBrushSize(self, size: int) -> None:
+        self.brush_size = size
+        self.brush_value_label.setText( str( self.slider.value() ) )
+    
+    @staticmethod
+    def percent(number: int, percent: int) -> int:
+        return round(number * (percent/100))
+        
+    def mousePressEvent(self, event) -> None:
         if event.button() == Qt.LeftButton:
             self.drawing = True
-            self.lastPoint = event.pos()
+            self.lastPoint = event.pos()# - QPoint(0, 20)
     
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event) -> None:
          
-        if (event.buttons() and Qt.LeftButton) and self.drawing:
+        if (event.buttons() & Qt.LeftButton) and self.drawing:
              
             painter = QPainter(self.image)
              
-            painter.setPen(QPen(self.brush_color, self.brush_size,
-                            Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+            painter.setPen(QPen(
+                QColor(self.brush_color[0], self.brush_color[1], self.brush_color[2]),
+                self.brush_size, Qt.SolidLine,
+                Qt.RoundCap, Qt.RoundJoin))
              
-            painter.drawLine(self.lastPoint, event.pos())
+            painter.drawLine(self.lastPoint, event.pos() )#- QPoint(0, 20))
              
-            self.lastPoint = event.pos()
+            self.lastPoint = event.pos()# - QPoint(0, 20)
             self.update()
  
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
         if event.button() == Qt.LeftButton:
             self.drawing = False
  
-    def paintEvent(self, _):
+    def paintEvent(self, _) -> None:
         canvasPainter = QPainter(self)
         canvasPainter.drawImage(self.rect(), self.image, self.image.rect())
     
