@@ -1,6 +1,7 @@
 import sys
 import os
-from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFileDialog, QMessageBox, QSlider, QLabel
+from PyQt5.QtWidgets import QMainWindow, QApplication, QAction,\
+    QFileDialog, QMessageBox, QSlider, QLabel, QColorDialog, QPushButton
 from PyQt5.QtGui import QImage, QPainter, QPen, QColor
 from PyQt5.QtCore import Qt, QPoint, QSize
 
@@ -15,8 +16,7 @@ class App(QMainWindow):
         self.image = QImage(QSize(width, height), QImage.Format_RGB32 )
         self.image.fill(Qt.white)
         self.drawing = False
-        self.brush_size = 2
-        self.brush_color: tuple[int, int, int] = (0, 0, 0)
+        self.brush_color = Qt.black
         self.last_point = QPoint()
         
         self.toolbar = self.addToolBar("TOOLBAR")
@@ -29,12 +29,19 @@ class App(QMainWindow):
         # brush_label.setPixmap(brush_picture)
         # brush_label.resize(20, 20)
         brush_label.setText("Brush Size:")
-        self.brush_value_label.setText("2")
+        self.brush_value_label.setText("8")
         
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setFixedWidth(self.percent(width, 20))
         self.slider.setRange(2, 48)
+        self.slider.setSliderPosition(8)
+        self.brush_size = self.slider.value()
         self.slider.valueChanged[int].connect(self.changeBrushSize)
+        
+        self.color_choose_button = QPushButton("Color", self)
+        self.color_choose_button.clicked.connect(self.changeColor)
+        
+        self.toolbar.addWidget(self.color_choose_button)
         self.toolbar.addWidget(brush_label)
         self.toolbar.addWidget(self.slider)
         self.toolbar.addWidget(self.brush_value_label)
@@ -50,6 +57,10 @@ class App(QMainWindow):
         file_menu.addAction(clear_action)
         clear_action.triggered.connect(self.clear_picture)
         
+    def changeColor(self) -> None:
+        color = QColorDialog.getColor(self.brush_color, self)
+        self.brush_color = color
+        
     def changeBrushSize(self, size: int) -> None:
         self.brush_size = size
         self.brush_value_label.setText( str( self.slider.value() ) )
@@ -61,7 +72,7 @@ class App(QMainWindow):
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.LeftButton:
             self.drawing = True
-            self.lastPoint = event.pos()# - QPoint(0, 20)
+            self.lastPoint = event.pos()
     
     def mouseMoveEvent(self, event) -> None:
          
@@ -70,13 +81,13 @@ class App(QMainWindow):
             painter = QPainter(self.image)
              
             painter.setPen(QPen(
-                QColor(self.brush_color[0], self.brush_color[1], self.brush_color[2]),
+                self.brush_color,
                 self.brush_size, Qt.SolidLine,
                 Qt.RoundCap, Qt.RoundJoin))
              
-            painter.drawLine(self.lastPoint, event.pos() )#- QPoint(0, 20))
+            painter.drawLine(self.lastPoint, event.pos() )
              
-            self.lastPoint = event.pos()# - QPoint(0, 20)
+            self.lastPoint = event.pos()
             self.update()
  
     def mouseReleaseEvent(self, event) -> None:
